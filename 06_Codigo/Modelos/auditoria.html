@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoria por pedido · Conferência de recebíveis</title>
+<style>
+* { box-sizing: border-box; }
+:root { --ink:#12373a; --green:#167461; --amber:#d99643; --paper:#f8f6ef; --muted:#4f6562; --line:#cbd3cc; }
+body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.48 "Segoe UI",Arial,sans-serif; }
+header { background:var(--ink); color:#fff; padding:25px max(4vw,18px) 22px; border-bottom:5px solid var(--amber); }
+h1 { font-family:Georgia,serif; font-size:clamp(2rem,4vw,3.35rem); font-weight:normal; line-height:1.12; margin:4px 0; }
+.context { font-size:.88rem; color:#d6e5e1; margin:0; }
+main { max-width:1536px; margin:auto; padding:19px max(3.5vw,16px) 38px; }
+h2,h3,p { margin:0; }
+h2 { font-size:1.1rem; } h3 { font-size:1rem; }
+button,select,input { font:inherit; color:inherit; }
+button { cursor:pointer; } button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible { outline:3px solid #847027; outline-offset:2px; }
+.tour { display:flex; gap:9px; flex-wrap:wrap; align-items:center; padding:0 0 18px; }
+.tour strong { margin-right:7px; font-size:.9rem; }
+.tour button { background:#fff; border:1px solid #b6c4bc; border-radius:18px; padding:5px 14px; font-weight:600; font-size:.9rem; }
+.tour button:hover,.tour button[aria-pressed=true] { background:var(--ink); color:white; }
+.workspace { display:grid; grid-template-columns:minmax(238px,.68fr) minmax(0,2.2fr); gap:20px; align-items:start; }
+aside,.sheet { background:#fffefa; border:1px solid var(--line); border-radius:9px; }
+aside { padding:15px; }
+.field { display:grid; margin-top:10px; font-size:.84rem; gap:4px; font-weight:650; }
+input,select { width:100%; padding:7px 8px; background:white; border:1px solid #9baea7; border-radius:4px; min-width:0; }
+.count { font-size:.82rem; color:var(--muted); margin:12px 0 6px; }
+.index { list-style:none; padding:0; margin:0; border-top:1px solid var(--line); max-height:407px; overflow-y:auto; }
+.index button { width:100%; background:transparent; border:0; border-bottom:1px solid #dde3dd; padding:9px 8px; display:flex; align-items:center; justify-content:space-between; text-align:left; gap:7px; }
+.index button[aria-current=true] { background:#e2f0e8; box-shadow:inset 3px 0 var(--green); }
+.index button:hover { background:#f1f5ee; } code,.num { font-variant-numeric:tabular-nums; }
+code { font: .88em Consolas,monospace; }
+.index small { display:block; color:var(--muted); font-size:.72rem; }
+.index .num { font-size:.82rem; white-space:nowrap; }
+.sheet { padding:clamp(15px,2vw,30px); min-height:430px; }
+.heading { display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; }
+.heading h2 { font:normal 1.8rem/1.1 Georgia,serif; }
+.status { display:inline-block; background:#ffedcf; color:#64390c; border-radius:14px; padding:3px 11px; font-size:.8rem; font-weight:650; }
+.status.exato { background:#dff0e6; color:#085741; }
+.meta { color:var(--muted); font-size:.86rem; margin:8px 0 16px; }
+.meta code { overflow-wrap:anywhere; font-size:.94em; }
+.metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.metric { display:flex; flex-direction:column; gap:4px; padding:11px 12px; border:1px solid var(--line); border-top:3px solid var(--green); border-radius:3px; background:#f8faf6; }
+.metric:last-child { border-top-color:var(--amber); }
+.metric span { font-size:.81rem; color:var(--muted); }.metric b { font-size:clamp(1.05rem,2.1vw,2rem); line-height:1.2; font-variant-numeric:tabular-nums; }
+.action { margin:15px 0; padding:10px 13px; background:#f1f2e9; border-left:3px solid var(--amber); font-size:.9rem; }
+.action b { display:block; }.sides { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.table-wrap { margin-top:7px; overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:.86rem; }
+th,td { padding:6px 4px; text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+thead th { border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:#f3f5ee; color:var(--muted); font-size:.76rem; }
+th:first-child,td:first-child { text-align:left; }
+tbody td { border-bottom:1px solid #ebeee6; }
+tfoot th,tfoot td { border-top:2px solid var(--line); font-weight:650; }
+.empty { padding:12px; font-size:.9rem; color:var(--muted); background:#f4f4ed; border-radius:4px; }
+.note { color:var(--muted); font-size:.84rem; margin:16px 0 0; }
+footer { margin:19px auto 0; font-size:.78rem; color:var(--muted); }
+a { color:#105d55; text-underline-offset:2px; }
+@media (max-width:1000px) { .sides { grid-template-columns:1fr; } .workspace { grid-template-columns:235px minmax(0,1fr); } }
+@media (max-width:700px) { .workspace { grid-template-columns:1fr; } .index { max-height:135px; }.metrics { gap:5px; }.metric { padding:6px; }.sheet { min-height:0; }.tour { gap:5px; }.tour strong { width:100%; } }
+</style>
+<header><h1>Auditoria por pedido</h1><p class="context">Conferência de recebíveis · Pedidos entregues da Olist · 2016–2018</p></header>
+<main>
+  <nav class="tour" aria-label="Exemplos para demonstração"><strong>Casos para demonstrar</strong><button id="exato">Dois itens, dois pagamentos</button><button id="maior">Maior diferença</button><button id="ausente">Sem pagamento registrado</button></nav>
+  <div class="workspace">
+    <aside>
+      <h2>Localizar pedido</h2>
+      <label class="field">ID do pedido<input id="busca" type="search" placeholder="Cole o ID ou parte dele" autocomplete="off"></label>
+      <label class="field">Resultado<select id="filtro"><option value="">Todos</option><option>Revisar valor</option><option>Sem pagamento</option><option value="Exato">Exato (controle)</option></select></label>
+      <p class="count" id="contagem" aria-live="polite"></p><ul id="lista" class="index" aria-label="Pedidos encontrados"></ul>
+    </aside>
+    <section id="ficha" class="sheet" aria-label="Ficha do pedido" aria-live="polite"></section>
+  </div>
+  <footer>Fonte dos registros: Olist / Francisco Magioli, <a href="https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce">Brazilian E-Commerce Public Dataset by Olist</a>, v2. Recorte, agregação em centavos e classificação feitos para este estudo. Dados adaptados sob <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.pt-br">CC BY-NC-SA 4.0</a>. Projeto independente para demonstração.</footer>
+</main>
+<script type="application/json" id="dados">{{DADOS}}</script>
+<script>
+"use strict";
+const pedidos = JSON.parse(document.getElementById("dados").textContent);
+const porId = new Map(pedidos.map(p => [p.pedido_id, p]));
+const el = id => document.getElementById(id);
+const brl = new Intl.NumberFormat("pt-BR", { style:"currency", currency:"BRL" });
+const dinheiro = centavos => centavos === null ? "Indisponível" : brl.format(centavos / 100);
+const saldo = centavos => centavos !== null && centavos > 0 ? "+" + dinheiro(centavos) : dinheiro(centavos);
+const formas = {credit_card:"Cartão de crédito",debit_card:"Cartão de débito",boleto:"Boleto",voucher:"Voucher",not_defined:"Indefinida"};
+const escapar = valor => String(valor).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+const amostra = pedidos.find(p => p.resultado === "Exato");
+const maior = pedidos.find(p => p.resultado === "Revisar valor");
+const ausente = pedidos.find(p => p.resultado === "Sem pagamento");
+const atalhos = { exato:amostra, maior:maior, ausente:ausente };
+let idAtual = maior.pedido_id;
+function metric(titulo, valor) {
+  return '<div class="metric"><span>' + titulo + '</span><b>' + valor + '</b></div>';
+}
+function tabela(titulos, linhas, rodape) {
+  return '<div class="table-wrap"><table><thead><tr>' + titulos.map(x => '<th scope="col">'+x+'</th>').join("") +
+    '</tr></thead><tbody>' + linhas.map(l => '<tr>' + l.map(x => '<td>'+escapar(x)+'</td>').join("") + '</tr>').join("") +
+    '</tbody><tfoot><tr><th scope="row" colspan="'+(titulos.length-1)+'">Total</th><td>'+rodape+'</td></tr></tfoot></table></div>';
+}
+function desenharFicha(p) {
+  if (!p) { el("ficha").innerHTML = '<h2>Nenhum pedido encontrado</h2><p class="note">Experimente outro trecho do ID ou selecione “Todos” no filtro.</p>'; return; }
+  const [ano, mes] = p.mes.split("-");
+  const itens = p.itens.map(i => [i.sequencia,dinheiro(i.preco),dinheiro(i.frete),dinheiro(i.preco+i.frete)]);
+  const pg = p.pagamentos.map(g => [g.sequencia,formas[g.forma] || g.forma,g.parcelas,dinheiro(g.valor)]);
+  let detalhe;
+  if (!pg.length) detalhe = "A ausência de uma linha de pagamento impede calcular a diferença. Confira o registro original e a cobertura da extração antes de investigar o valor.";
+  else if (p.resultado === "Exato") detalhe = "As duas linhas de itens e as duas de pagamentos fecham em R$ 144,14. Cruzá-las diretamente produziria quatro linhas e dobraria os dois totais. Some cada lado antes de cruzar.";
+  else detalhe = "Diferença = pagamentos registrados menos itens com frete. Os dados permitem conferir valores. A causa exige comprovação documental.";
+  el("ficha").innerHTML = '<div class="heading"><h2>Ficha do pedido</h2><span class="status '+ (p.resultado === "Exato" ? "exato" : "") +'">'+escapar(p.resultado)+'</span></div>' +
+    '<p class="meta"><code>'+escapar(p.pedido_id)+'</code> · Compra em '+mes+'/'+ano+'</p>' +
+    '<div class="metrics">'+metric("Itens + frete",dinheiro(p.esperado_centavos))+metric("Pagamento registrado",dinheiro(p.registrado_centavos))+metric("Diferença",saldo(p.delta_centavos))+'</div>' +
+    '<p class="action"><b>Próxima ação</b>'+escapar(p.acao)+'.</p>' +
+    '<div class="sides"><section><h3>Itens do pedido ('+itens.length+')</h3>'+
+    (itens.length ? tabela(["Item","Preço","Frete","Com frete"],itens,dinheiro(p.esperado_centavos)) : '<p class="empty">Sem registro de item na origem.</p>')+
+    '</section><section><h3>Registros de pagamento ('+pg.length+')</h3>' +
+    (pg.length ? tabela(["Seq.","Forma","Parcelas","Valor"],pg,dinheiro(p.registrado_centavos)) : '<p class="empty">Nenhuma linha de pagamento para este pedido na base da Olist.</p>') +
+    '</section></div><p class="note">'+detalhe+'</p>';
+}
+function atualizar() {
+  const busca = el("busca").value.trim().toLowerCase();
+  const filtro = el("filtro").value;
+  const vistos = pedidos.filter(p => (!filtro || p.resultado === filtro) && p.pedido_id.includes(busca));
+  if (!vistos.some(p => p.pedido_id === idAtual)) idAtual = vistos.length ? vistos[0].pedido_id : null;
+  el("contagem").textContent = !busca && !filtro ? (pedidos.length-1)+" pedidos na fila + 1 controle exato" : vistos.length +" "+(vistos.length === 1 ? "pedido encontrado" : "pedidos encontrados");
+  el("lista").innerHTML = vistos.map(p => '<li><button data-id="'+p.pedido_id+'" aria-current="'+(p.pedido_id === idAtual)+'"><span><code>'+p.pedido_id.slice(0,9)+'…</code><small>'+escapar(p.resultado)+'</small></span><span class="num">'+(p.delta_centavos === null ? "Sem valor" : saldo(p.delta_centavos))+'</span></button></li>').join("");
+  for (const [btn,p] of Object.entries(atalhos)) el(btn).setAttribute("aria-pressed",String(p.pedido_id === idAtual));
+  desenharFicha(porId.get(idAtual));
+}
+el("busca").addEventListener("input",atualizar);
+el("filtro").addEventListener("change",atualizar);
+el("lista").addEventListener("click", e => {
+  const botao = e.target.closest("button[data-id]");
+  if (botao) { idAtual = botao.dataset.id; atualizar(); el("lista").querySelector('[aria-current="true"]').focus({preventScroll:true}); }
+});
+for (const [btn,p] of Object.entries(atalhos)) el(btn).addEventListener("click", () => {
+  el("busca").value = ""; el("filtro").value = ""; idAtual = p.pedido_id; atualizar();
+  const lista = el("lista"), selecionado = lista.querySelector('[aria-current="true"]');
+  lista.scrollTop += selecionado.getBoundingClientRect().top - lista.getBoundingClientRect().top;
+});
+atualizar();
+</script>
+</html>

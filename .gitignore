@@ -1,0 +1,8 @@
+05_Preparacao/
+07_Entrega/
+__pycache__/
+*.pyc
+*.zip
+*.sqlite*
+.pbi/
+*.tmp

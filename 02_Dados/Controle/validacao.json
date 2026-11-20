@@ -1,0 +1,27 @@
+{
+  "fonte": "https://www.kaggle.com/api/v1/datasets/download/olistbr/brazilian-ecommerce?datasetVersionNumber=2",
+  "sha256_arquivos_origem": {
+    "olist_orders_dataset.csv": "8df58ef3d2d7e9944010f7beecd9b75367f5588ec6e3c91cec19ae3345ef9ecf",
+    "olist_order_items_dataset.csv": "0bc4d068c4fe38cbb01bd90e8746e3c613fe7b4baef75fab7b0e329701c3e279",
+    "olist_order_payments_dataset.csv": "4f713964f2815dbbaa40b9488268c55aac3627bfce5aa96cf58d1f3616de3cc0"
+  },
+  "linhas_origem": {
+    "pedidos": 99441,
+    "itens": 112650,
+    "pagamentos": 103886
+  },
+  "pedidos_entregues": 96478,
+  "linhas_itens_entregues": 110197,
+  "preco_centavos_entregues": 1322149811,
+  "frete_centavos_entregues": 219827564,
+  "linhas_pagamentos_entregues": 100756,
+  "valor_registrado_centavos_entregues": 1542246177,
+  "resultados": {
+    "Até R$ 0,01": 270,
+    "Exato": 95908,
+    "Revisar valor": 299,
+    "Sem pagamento": 1
+  },
+  "pedidos_na_fila": 300,
+  "fila_diferenca_absoluta_centavos": 323030
+}

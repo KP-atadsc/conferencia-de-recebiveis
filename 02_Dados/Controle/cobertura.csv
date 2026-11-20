@@ -1,0 +1,9 @@
+estado,pedidos,escopo
+delivered,96478,Incluído
+shipped,1107,Fora do recorte
+canceled,625,Fora do recorte
+unavailable,609,Fora do recorte
+invoiced,314,Fora do recorte
+processing,301,Fora do recorte
+created,5,Fora do recorte
+approved,2,Fora do recorte

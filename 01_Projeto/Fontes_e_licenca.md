@@ -9,3 +9,5 @@
 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.pt-br) | Licença declarada pela fonte. |
 
 Os dados derivados da Olist, suas visualizações e a apresentação que os reproduz são distribuídos sob CC BY-NC-SA 4.0. Transformações: seleção de campos e pedidos entregues, conversão para centavos, agregação por pedido, classificação, priorização e resumos. A fonte preserva a autoria dos dados. O uso aqui é educacional e de portfólio. Um piloto empresarial usaria dados próprios autorizados.
+
+O repositório não declara uma licença de reutilização específica para o código Python e SQL.

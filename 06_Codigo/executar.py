@@ -27,6 +27,7 @@ CONSULTAS = {
         FROM pedidos GROUP BY estado ORDER BY pedidos DESC, estado
     """,
 }
+ARQUIVOS = (*CONSULTAS, "Controle/validacao.json")
 
 
 def verificar(db):
@@ -40,8 +41,8 @@ def verificar(db):
         FROM pagamentos g JOIN pedidos p USING (pedido_id) WHERE p.estado = 'delivered'
     """).fetchone()
     controle = db.execute("""
-        SELECT SUM(itens), SUM(itens_centavos), SUM(frete_centavos),
-               SUM(registros_pagamento), SUM(registrado_centavos)
+        SELECT COALESCE(SUM(itens), 0), SUM(itens_centavos), SUM(frete_centavos),
+               COALESCE(SUM(registros_pagamento), 0), SUM(registrado_centavos)
         FROM conferencia
     """).fetchone()
     if controle != esperado + registrado:
@@ -63,6 +64,51 @@ def verificar(db):
     }
 
 
+def restaurar(pasta, base, diario):
+    for nome in ARQUIVOS:
+        anterior = diario.execute("SELECT dados FROM anteriores WHERE nome = ?", (nome,)).fetchone()
+        if anterior is None:
+            continue
+        destino = pasta / nome
+        dados = anterior[0]
+        if dados is None:
+            destino.unlink(missing_ok=True)
+        elif not destino.exists() or destino.read_bytes() != dados:
+            copia = base / "restauracao.tmp"
+            copia.write_bytes(dados)
+            os.replace(copia, destino)
+    with diario:
+        diario.execute("DELETE FROM anteriores")
+
+
+def publicar(pasta, base):
+    # Um único publicador por pasta. O diário sobrevive a interrupções do processo.
+    with closing(sqlite3.connect(pasta / ".publicacao.sqlite3", timeout=30)) as diario:
+        diario.execute("PRAGMA locking_mode = EXCLUSIVE")
+        diario.execute("PRAGMA auto_vacuum = FULL")
+        diario.execute("BEGIN EXCLUSIVE")
+        diario.execute("CREATE TABLE IF NOT EXISTS anteriores (nome TEXT PRIMARY KEY, dados BLOB)")
+        diario.commit()
+        restaurar(pasta, base, diario)
+        alterados = []
+        with diario:
+            for nome in ARQUIVOS:
+                destino = pasta / nome
+                destino.parent.mkdir(parents=True, exist_ok=True)
+                anterior = destino.read_bytes() if destino.exists() else None
+                if anterior != (base / nome).read_bytes():
+                    diario.execute("INSERT INTO anteriores VALUES (?, ?)", (nome, anterior))
+                    alterados.append(nome)
+        try:
+            for nome in alterados:
+                os.replace(base / nome, pasta / nome)
+            with diario:
+                diario.execute("DELETE FROM anteriores")
+        except BaseException:
+            restaurar(pasta, base, diario)
+            raise
+
+
 def exportar(db, pasta, controle):
     pasta.mkdir(parents=True, exist_ok=True)
     # Só publica os arquivos depois de terminar e conferir a extração.
@@ -78,9 +124,7 @@ def exportar(db, pasta, controle):
                 escritor.writerows(cursor)
         (base / "Controle/validacao.json").write_text(
             json.dumps(controle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        for nome in (*CONSULTAS, "Controle/validacao.json"):
-            (pasta / nome).parent.mkdir(parents=True, exist_ok=True)
-            os.replace(base / nome, pasta / nome)
+        publicar(pasta, base)
 
 
 def main():

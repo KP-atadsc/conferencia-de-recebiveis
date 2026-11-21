@@ -6,9 +6,9 @@ Esse pedido existe na base pública da Olist. Ele explica uma escolha deste proj
 
 ### Abra um pedido
 
-Baixe o [relatório pronto para Power BI Desktop](03_Power_BI/Relatorio/Conferencia_de_recebiveis.pbix). Em **Visão do supervisor**, veja a fila completa. Em **Fila de revisão**, a primeira linha mostra um pedido sem registro de pagamento. A segunda traz a maior diferença comparável, R$ 182,81.
+Baixe o [relatório pronto para Power BI Desktop](03_Power_BI/Relatorio/Conferencia_de_recebiveis.pbix). A aba **Visão do supervisor** resume os pedidos entregues e os motivos de revisão. A lista de pedidos, valores e ações fica na aba **Fila de revisão**. Com os filtros limpos e na ordem inicial, a primeira linha mostra um pedido sem registro de pagamento. A segunda traz a maior diferença comparável, R$ 182,81. Cada aba tem seu próprio filtro de mês. Para investigar o mesmo período nas duas, selecione o mês em ambas.
 
-Para ver as linhas originais, baixe e abra o [visualizador offline de pedidos](03_Power_BI/Auditoria_offline/Abrir_auditoria.html) no navegador. O atalho do pedido com dois itens e dois pagamentos mostra o exemplo de R$ 144,14. Os [seis slides em PDF](04_Apresentacao/PDF/Conferencia_de_recebiveis.pdf) contam a história para o time.
+Para ver as linhas de itens e pagamentos, baixe e abra o [visualizador offline de pedidos](03_Power_BI/Auditoria_offline/Abrir_auditoria.html) no navegador. A busca cobre os 300 pedidos da fila e um pedido de controle. O atalho de dois itens e dois pagamentos abre esse controle de R$ 144,14. Para consultar outro pedido da fonte, use o comando com `--pedido` abaixo e substitua o ID. Os [seis slides em PDF](04_Apresentacao/PDF/Conferencia_de_recebiveis.pdf) resumem os resultados para o time.
 
 ### Por que são 300 pedidos?
 
@@ -22,13 +22,20 @@ python 06_Codigo/testar_tolerancia.py 1
 
 ### Da origem ao relatório
 
-O primeiro comando abaixo baixa a versão 2 da Olist e recria os CSVs e totais de controle. O segundo executa os quatro testes da lógica de conferência. Ambos usam a biblioteca padrão do Python. Para trabalhar com um download já feito, acrescente `--zip caminho/olist.zip` ao primeiro comando.
+O primeiro comando abaixo baixa a versão 2 da Olist, recria os CSVs e totais de controle e exibe os registros do pedido indicado. O segundo executa os testes da conferência, da exportação e da atualização do modelo do Power BI. Ambos usam a biblioteca padrão do Python. Para trabalhar com um download já feito, acrescente `--zip caminho/olist.zip` ao primeiro comando.
 
 ```shell
 python 06_Codigo/executar.py --pedido 32e4fa9bb468884309b58b9348de70c3
 python -m unittest discover -s 06_Codigo/Testes -v
 ```
 
-A [consulta SQL](06_Codigo/SQL/conferencia.sql) concentra a regra. O [dicionário](02_Dados/Dicionario.md) explica as colunas monetárias em centavos. A [proposta de piloto](01_Projeto/Proposta.md) especifica o que precisaria mudar para testar uma carteira com títulos, parcelas, liquidações e estornos. Para atualizar o projeto editável do Power BI com uma nova execução dos CSVs, feche o Desktop, rode `python 03_Power_BI/Atualizacao/atualizar_modelo.py`, abra o [arquivo PBIP](03_Power_BI/Projeto_editavel/Conferencia.pbip) com as pastas irmãs e clique em **Atualizar**. Para recriar a consulta offline de itens e pagamentos, execute `python 06_Codigo/gerar_auditoria.py`.
+A [consulta SQL](06_Codigo/SQL/conferencia.sql) concentra a regra. O [dicionário](02_Dados/Dicionario.md) explica as colunas monetárias em centavos. O gráfico mensal usa o mês de compra dos pedidos entregues. Há 23 meses com pedidos entre setembro de 2016 e agosto de 2018. Novembro de 2016 não tem pedidos entregues no recorte e por isso fica fora do eixo. A [proposta de piloto](01_Projeto/Proposta.md) especifica o que precisaria mudar para testar uma carteira com títulos, parcelas, liquidações e estornos.
+
+### Atualizar os materiais após recriar os dados
+
+1. Baixe o repositório completo em **Code → Download ZIP** e extraia a pasta, ou faça um clone com Git. O [projeto editável do Power BI](03_Power_BI/Projeto_editavel/Conferencia.pbip) usa as pastas irmãs `Conferencia.Report` e `Conferencia.SemanticModel`.
+2. Com o Power BI Desktop fechado, execute `python 03_Power_BI/Atualizacao/atualizar_modelo.py` a partir da raiz do repositório. Esse comando atualiza os dados das tabelas Mensal e Fila no projeto editável.
+3. Abra `Conferencia.pbip` no Power BI Desktop e clique em **Atualizar**. Para distribuir o relatório atualizado como arquivo único, use **Arquivo → Salvar como** e escolha o formato **.pbix**. O PBIX distribuído é uma cópia separada do projeto editável.
+4. Para recriar o visualizador de pedidos, execute `python 06_Codigo/gerar_auditoria.py`. O parâmetro `--zip caminho/olist.zip` também permite usar a base já baixada.
 
 O projeto foi preparado com apoio de IA na pesquisa, na implementação e nos materiais de apresentação. A fonte, as transformações e as contas por pedido estão abertas à inspeção. [Créditos e licença dos dados derivados](01_Projeto/Fontes_e_licenca.md)

@@ -125,7 +125,7 @@
           },
           {
             "name": "Dentro da tolerância",
-            "expression": "DIVIDE([Pedidos aceitos], [Pedidos entregues])",
+            "expression": "DIVIDE(COALESCE([Pedidos aceitos], 0), [Pedidos entregues])",
             "formatString": "0.00%"
           },
           {

@@ -5,3 +5,5 @@
 *.pbix binary
 *.pdf binary
 *.pptx binary
+03_Power_BI/Auditoria_offline/Abrir_auditoria.html linguist-generated=true
+06_Codigo/SQL/*.sql linguist-detectable=true

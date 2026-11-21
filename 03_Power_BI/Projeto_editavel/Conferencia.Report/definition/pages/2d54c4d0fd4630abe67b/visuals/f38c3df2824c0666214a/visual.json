@@ -19,7 +19,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Na aba Fila de revisão, localize os pedidos com diferença acima de R$ 0,01 ou com registros ausentes.",
+                    "value": "Abra Fila de revisão para consultar os pedidos. Para ver o mesmo período, selecione o mês também naquela aba.",
                     "textStyle": {
                       "fontFamily": "Segoe UI Semibold",
                       "fontSize": "14pt",

@@ -20,6 +20,7 @@ button { cursor:pointer; } button:focus-visible,a:focus-visible,select:focus-vis
 .tour button { background:#fff; border:1px solid #b6c4bc; border-radius:18px; padding:5px 14px; font-weight:600; font-size:.9rem; }
 .tour button:hover,.tour button[aria-pressed=true] { background:var(--ink); color:white; }
 .workspace { display:grid; grid-template-columns:minmax(238px,.68fr) minmax(0,2.2fr); gap:20px; align-items:start; }
+.workspace > *, .sides > * { min-width:0; }
 aside,.sheet { background:#fffefa; border:1px solid var(--line); border-radius:9px; }
 aside { padding:15px; }
 .field { display:grid; margin-top:10px; font-size:.84rem; gap:4px; font-weight:650; }
@@ -58,6 +59,10 @@ footer { margin:19px auto 0; font-size:.78rem; color:var(--muted); }
 a { color:#105d55; text-underline-offset:2px; }
 @media (max-width:1000px) { .sides { grid-template-columns:1fr; } .workspace { grid-template-columns:235px minmax(0,1fr); } }
 @media (max-width:700px) { .workspace { grid-template-columns:1fr; } .index { max-height:135px; }.metrics { gap:5px; }.metric { padding:6px; }.sheet { min-height:0; }.tour { gap:5px; }.tour strong { width:100%; } }
+@media (max-width:480px) {
+  .metrics { grid-template-columns:1fr; }
+  .metric { flex-direction:row; align-items:baseline; justify-content:space-between; gap:8px; padding:8px; }
+}
 </style>
 <header><h1>Auditoria por pedido</h1><p class="context">Conferência de recebíveis · Pedidos entregues da Olist · 2016–2018</p></header>
 <main>
@@ -65,7 +70,8 @@ a { color:#105d55; text-underline-offset:2px; }
   <div class="workspace">
     <aside>
       <h2>Localizar pedido</h2>
-      <label class="field">ID do pedido<input id="busca" type="search" placeholder="Cole o ID ou parte dele" autocomplete="off"></label>
+      <p id="escopo" class="note">A busca cobre a fila de revisão e o pedido de controle. Para consultar outro ID na base original, rode <code>python 06_Codigo/executar.py --pedido ID</code> na pasta do projeto.</p>
+      <label class="field">ID do pedido<input id="busca" type="search" placeholder="Cole o ID ou parte dele" autocomplete="off" aria-describedby="escopo"></label>
       <label class="field">Resultado<select id="filtro"><option value="">Todos</option><option>Revisar valor</option><option>Sem pagamento</option><option value="Exato">Exato (controle)</option></select></label>
       <p class="count" id="contagem" aria-live="polite"></p><ul id="lista" class="index" aria-label="Pedidos encontrados"></ul>
     </aside>
@@ -88,7 +94,7 @@ const amostra = pedidos.find(p => p.resultado === "Exato");
 const maior = pedidos.find(p => p.resultado === "Revisar valor");
 const ausente = pedidos.find(p => p.resultado === "Sem pagamento");
 const atalhos = { exato:amostra, maior:maior, ausente:ausente };
-let idAtual = maior.pedido_id;
+let idAtual = (maior || pedidos[0])?.pedido_id ?? null;
 function metric(titulo, valor) {
   return '<div class="metric"><span>' + titulo + '</span><b>' + valor + '</b></div>';
 }
@@ -121,9 +127,14 @@ function atualizar() {
   const filtro = el("filtro").value;
   const vistos = pedidos.filter(p => (!filtro || p.resultado === filtro) && p.pedido_id.includes(busca));
   if (!vistos.some(p => p.pedido_id === idAtual)) idAtual = vistos.length ? vistos[0].pedido_id : null;
-  el("contagem").textContent = !busca && !filtro ? (pedidos.length-1)+" pedidos na fila + 1 controle exato" : vistos.length +" "+(vistos.length === 1 ? "pedido encontrado" : "pedidos encontrados");
+  if (!busca && !filtro) {
+    const naFila = pedidos.length - (amostra ? 1 : 0);
+    el("contagem").textContent = naFila + (naFila === 1 ? " pedido na fila" : " pedidos na fila") + (amostra ? " + 1 controle exato" : "");
+  } else {
+    el("contagem").textContent = vistos.length + (vistos.length === 1 ? " pedido encontrado" : " pedidos encontrados");
+  }
   el("lista").innerHTML = vistos.map(p => '<li><button data-id="'+p.pedido_id+'" aria-current="'+(p.pedido_id === idAtual)+'"><span><code>'+p.pedido_id.slice(0,9)+'…</code><small>'+escapar(p.resultado)+'</small></span><span class="num">'+(p.delta_centavos === null ? "Sem valor" : saldo(p.delta_centavos))+'</span></button></li>').join("");
-  for (const [btn,p] of Object.entries(atalhos)) el(btn).setAttribute("aria-pressed",String(p.pedido_id === idAtual));
+  for (const [btn,p] of Object.entries(atalhos)) el(btn).setAttribute("aria-pressed",String(p?.pedido_id === idAtual));
   desenharFicha(porId.get(idAtual));
 }
 el("busca").addEventListener("input",atualizar);
@@ -132,11 +143,18 @@ el("lista").addEventListener("click", e => {
   const botao = e.target.closest("button[data-id]");
   if (botao) { idAtual = botao.dataset.id; atualizar(); el("lista").querySelector('[aria-current="true"]').focus({preventScroll:true}); }
 });
-for (const [btn,p] of Object.entries(atalhos)) el(btn).addEventListener("click", () => {
-  el("busca").value = ""; el("filtro").value = ""; idAtual = p.pedido_id; atualizar();
-  const lista = el("lista"), selecionado = lista.querySelector('[aria-current="true"]');
-  lista.scrollTop += selecionado.getBoundingClientRect().top - lista.getBoundingClientRect().top;
-});
+for (const [btn,p] of Object.entries(atalhos)) {
+  const botao = el(btn);
+  if (!p) {
+    botao.hidden = true;
+    continue;
+  }
+  botao.addEventListener("click", () => {
+    el("busca").value = ""; el("filtro").value = ""; idAtual = p.pedido_id; atualizar();
+    const lista = el("lista"), selecionado = lista.querySelector('[aria-current="true"]');
+    lista.scrollTop += selecionado.getBoundingClientRect().top - lista.getBoundingClientRect().top;
+  });
+}
 atualizar();
 </script>
 </html>

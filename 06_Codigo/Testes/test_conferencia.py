@@ -1,10 +1,13 @@
+import os
 import sqlite3
 import sys
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from executar import verificar
+from executar import ARQUIVOS, exportar, verificar
 from extrair import SQL, centavos
 
 
@@ -63,6 +66,40 @@ class ConferenciaTest(unittest.TestCase):
         self.assertEqual(centavos("59.90"), 5990)
         with self.assertRaises(ValueError):
             centavos("0.001")
+
+    def test_recorte_sem_entregues(self):
+        self.pedido("cancelado", [], [], "canceled")
+        resumo = self.calcular()
+        self.assertEqual(resumo["pedidos_entregues"], 0)
+        self.assertEqual(resumo["pedidos_na_fila"], 0)
+
+    def test_exportacao_restaura_lote_apos_arquivo_bloqueado(self):
+        self.pedido("exato", [(100, 0)], [("boleto", 1, 100)])
+        controle = self.calcular()
+        substituir = os.replace
+        with TemporaryDirectory() as temporaria:
+            pasta = Path(temporaria)
+            fila = pasta / "Fila/fila.csv"
+            fila.parent.mkdir()
+            fila.write_bytes(b"fila anterior")
+            pedidos = pasta / "Pedidos/pedidos.csv"
+            pedidos.parent.mkdir()
+            pedidos.write_bytes(b"pedidos anteriores")
+
+            def simular_bloqueio(origem, destino):
+                if destino == fila:
+                    raise PermissionError("arquivo em uso")
+                substituir(origem, destino)
+
+            with patch("executar.os.replace", side_effect=simular_bloqueio):
+                with self.assertRaises(PermissionError):
+                    exportar(self.db, pasta, controle)
+            self.assertEqual(pedidos.read_bytes(), b"pedidos anteriores")
+            self.assertEqual(fila.read_bytes(), b"fila anterior")
+            self.assertFalse((pasta / "Controle/validacao.json").exists())
+            exportar(self.db, pasta, controle)
+            self.assertTrue(all((pasta / nome).is_file() for nome in ARQUIVOS))
+            self.assertIn("exato", pedidos.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

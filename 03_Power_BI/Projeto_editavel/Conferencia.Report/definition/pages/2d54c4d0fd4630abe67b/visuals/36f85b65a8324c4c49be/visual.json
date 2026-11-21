@@ -19,7 +19,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Pedidos entregues. Cada pagamento registrado é comparado ao total dos itens e do frete do pedido.",
+                    "value": "Em cada pedido entregue, a soma dos pagamentos registrados é comparada à soma dos preços e fretes dos itens.",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
                       "fontSize": "13pt",
